@@ -137,7 +137,7 @@ local handler = function(files)
 if opts.short then
     handler = function(files)
         files = files:gsub("\n", " ")
-        os.execute("bat --line-range :1 " .. files)
+        os.execute("head -n 1 --quiet " ..files .. " | rg --no-filename --colors 'match:fg:magenta' -e '@\\w+'")
     end
 end
 if opts.file then
