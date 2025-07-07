@@ -187,7 +187,8 @@ else
         nextfile = "if (++i == "..opts.number..") exit"
     end
 
-    local awk_script = string.format("awk '%s { print FILENAME; %s }' %s", pattern, nextfile, all_notes)
+    local smart_case = pattern == pattern:lower() and "BEGIN { IGNORECASE = 1 }" or ""
+    local awk_script = string.format("awk '%s %s { print FILENAME; %s }' %s", smart_case, pattern, nextfile, all_notes)
     local find_files <close> = assert(io.popen(awk_script))
     local files = find_files:read("*all")
     if files ~= "" then
