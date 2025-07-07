@@ -170,11 +170,11 @@ else
     end
     local pattern = ""
     for _, a in ipairs(args) do
-        if a:sub(1, 1) == "@" then
+        if a:sub(1, 1) == "@" and not a:find(" ") then
             -- Only match whole tags (@tod should not match @todo)
             pattern = pattern .. " /" .. a .. "([^[:alnum:]]|$)/ " .. separator
         else
-            pattern = pattern .. " /" .. a .. "/ " .. separator
+            pattern = pattern .. " index($0, \"" .. a .. "\") " .. separator
         end
     end
     -- Remove final separator
