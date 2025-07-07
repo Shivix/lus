@@ -29,58 +29,81 @@ local function create_note(config)
 end
 
 local valid_opts = {
-    help = {
+    {
+        long = "help",
         short = "h",
         description = "Print usage",
     },
-    version = {
+    {
+        long = "version",
         short = "v",
         description = "Print version",
     },
-    completion = {
+    {
+        long = "completion",
         description = "Print completion",
     },
-    config = {
+    {
+        long = "config",
         short = "c",
         value = true,
         description = "Set the config, defaults to ~/.config/lus/config.lua",
     },
-    delete = {
+    {
+        long = "delete",
         short = "d",
         description = "Delete any matching notes, will ask for confirmation",
     },
-    edit = {
+    {
+        long = "edit",
         short = "e",
         description = "Edit any matching notes in configured editor (defaults to $EDITOR)",
     },
-    file = {
+    {
+        long = "file",
         short = "f",
         description = "Print the filenames of any matching notes instead of the contents",
     },
-    number = {
+    {
+        long = "number",
         short = "n",
         value = true,
         description = "Limits the maximum number of matches",
     },
-    short = {
+    {
+        long = "or",
+        description = "One or more of the provided arguments must match rather than all",
+    },
+    {
+        long = "short",
         short = "s",
         description = "Print only the title of each note",
     },
-    tags = {
+    {
+        long = "tags",
         short = "t",
         description = "Print all the tags that exist among all notes",
     },
-    ["or"] = {
-        description = "One or more of the provided arguments must match rather than all",
-    },
 }
 
+local version = "1.0.0"
 local opts, args = lualib_args.parse_args(valid_opts)
+
 if opts.help then
-    -- TODO:
+    local usage = "lus " .. version .. [[
+
+A simple note taking/ journaling tool.
+
+Usage:
+    lus [Pattern] [Options]
+
+]] .. lualib_args.generate_usage(valid_opts) .. [[
+
+https://github.com/Shivix/lus]]
+    print(usage)
     os.exit(0)
 elseif opts.version then
-    -- TODO:
+    print("lus " .. version)
     os.exit(0)
 elseif opts.completion then
     print(lualib_args.generate_completion("lus", valid_opts))
