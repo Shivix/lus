@@ -7,6 +7,7 @@ complete -c lus -l config -s c -r '-d Set the config, defaults to ~/.config/lus/
 complete -c lus -l delete -s d '-d Delete any matching notes, will ask for confirmation'
 complete -c lus -l edit -s e '-d Edit any matching notes in configured editor (defaults to $EDITOR)'
 complete -c lus -l file -s f '-d Print the filenames of any matching notes instead of the contents'
+complete -c lus -l fixed-strings -s F '-d treat arguments as plain strings and avoid lua pattern matching'
 complete -c lus -l number -s n -r '-d Limits the maximum number of matches'
 complete -c lus -l or '-d One or more of the provided arguments must match rather than all'
 complete -c lus -l short -s s '-d Print only the title of each note'

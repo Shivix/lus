@@ -25,6 +25,6 @@ return {
 Here is an example fish function to use fzf to find notes
 ```fish
 function fzflus
-    lus "" --short | fzf --multi --preview 'lus "{1}" --file | xargs bat -H 1 --language markdown --color=always'
+    lus "" --short | fzf --multi --preview 'lus {} --fixed-strings --file | xargs bat -H 1 --language markdown --color=always'
 end
 ```

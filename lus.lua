@@ -75,6 +75,11 @@ local valid_opts = {
         description = "One or more of the provided arguments must match rather than all",
     },
     {
+        long = "fixed-strings",
+        short = "F",
+        description = "treat arguments as plain strings and avoid lua pattern matching",
+    },
+    {
         long = "short",
         short = "s",
         description = "Print only the title of each note",
@@ -86,7 +91,7 @@ local valid_opts = {
     },
 }
 
-local version = "1.0.0"
+local version = "1.0.1"
 local opts, args = lualib_args.parse_args(valid_opts)
 
 if opts.help then
@@ -158,39 +163,49 @@ if opts.edit then
         os.execute(config.editor .. " " .. files)
     end
 end
--- Will cause awk to fail if no directories are found.
-local all_notes = config.directory .. "*.lus"
 
 if #args == 0 then
     create_note(config)
 else
-    local separator = "&&"
-    if opts["or"] then
-        separator = "||"
-    end
-    local pattern = ""
+    local patterns = {}
     for _, a in ipairs(args) do
-        if a:sub(1, 1) == "@" and not a:find(" ") then
+        if a:sub(1, 1) == "@" and not a:find(" ") and not opts["fixed-strings"] then
             -- Only match whole tags (@tod should not match @todo)
-            pattern = pattern .. " /" .. a .. "([^[:alnum:]]|$)/ " .. separator
+            table.insert(patterns, a .. "[^%w]")
         else
-            pattern = pattern .. " index($0, \"" .. a .. "\") " .. separator
+            table.insert(patterns, a)
         end
     end
-    -- Remove final separator
-    pattern = pattern:sub(1, -4)
 
-    local nextfile = "nextfile"
-    if opts.number == "1" then
-        nextfile = "exit"
-    elseif opts.number then
-        nextfile = "if (++i == "..opts.number..") exit"
+    local files = ""
+    local n = 0
+    -- sort -V avoids 10..19, 1 ordering. -r reverses so newer notes are first.
+    local notes = assert(io.popen('ls "' .. config.directory .. '"*.lus | sort -Vr'))
+    for file in notes:lines() do
+        local f <close> = io.open(file, "r")
+        if f then
+            local content = f:read("*a")
+            f:close()
+            local patterns_found = 0
+            for _, pattern in ipairs(patterns) do
+                if content:find(pattern, 1, opts["fixed-strings"]) then
+                    if opts["or"] then
+                        patterns_found = #patterns
+                        break
+                    end
+                    patterns_found = patterns_found + 1
+                end
+            end
+            if patterns_found == #patterns then
+                files = files .. " " .. file
+                n = n + 1
+                if n == tonumber(opts.number) then
+                    break
+                end
+            end
+        end
     end
 
-    local smart_case = pattern == pattern:lower() and "BEGIN { IGNORECASE = 1 }" or ""
-    local awk_script = string.format("awk '%s %s { print FILENAME; %s }' %s", smart_case, pattern, nextfile, all_notes)
-    local find_files <close> = assert(io.popen(awk_script))
-    local files = find_files:read("*all")
     if files ~= "" then
         handler(files)
     end
