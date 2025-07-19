@@ -40,6 +40,10 @@ local valid_opts = {
         description = "Print version",
     },
     {
+        long = "case-sensitive",
+        description = "Match notes case sensitively",
+    },
+    {
         long = "completion",
         description = "Print completion",
     },
@@ -169,6 +173,10 @@ if #args == 0 then
 else
     local patterns = {}
     for _, a in ipairs(args) do
+        -- If case-sensitive is not provided then use smart case
+        if opts["case-sensitive"] == nil and a:lower() ~= a then
+            opts["case-sensitive"] = true
+        end
         if a:sub(1, 1) == "@" and not a:find(" ") and not opts["fixed-strings"] then
             -- Only match whole tags (@tod should not match @todo)
             table.insert(patterns, a .. "[^%w]")
@@ -185,9 +193,13 @@ else
         local f <close> = io.open(file, "r")
         if f then
             local content = f:read("*a")
+            if not opts["case-sensitive"] then
+                content = content:lower()
+            end
             f:close()
             local patterns_found = 0
             for _, pattern in ipairs(patterns) do
+                -- Use smartcase (only make case sensitive if pattern given includes uppercase)
                 if content:find(pattern, 1, opts["fixed-strings"]) then
                     if opts["or"] then
                         patterns_found = #patterns
