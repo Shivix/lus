@@ -19,11 +19,15 @@ local function create_note(config)
     os.execute(config.editor .. " " .. note_path)
 
     if os.execute("ls " .. note_path .. " 2>/dev/null") then
-        os.execute(string.format([[
+        os.execute(string.format(
+            [[
             if [ ! -s %q ]; then
                 rm -i %q
             fi
-        ]], note_path, note_path))
+        ]],
+            note_path,
+            note_path
+        ))
         os.execute("echo " .. new_id .. " >" .. id_path)
     end
 end
@@ -42,6 +46,11 @@ local valid_opts = {
     {
         long = "case-sensitive",
         description = "Match notes case sensitively",
+    },
+    {
+        long = "color",
+        value = true,
+        description = "When to color the output (Always, never, auto)",
     },
     {
         long = "completion",
@@ -99,14 +108,18 @@ local version = "1.0.1"
 local opts, args = lualib_args.parse_args(valid_opts)
 
 if opts.help then
-    local usage = "lus " .. version .. [[
+    local usage = "lus "
+        .. version
+        .. [[
 
 A simple note taking/ journaling tool.
 
 Usage:
     lus [Pattern] [Options]
 
-]] .. lualib_args.generate_usage(valid_opts) .. [[
+]]
+        .. lualib_args.generate_usage(valid_opts)
+        .. [[
 
 https://github.com/Shivix/lus]]
     print(usage)
@@ -135,18 +148,30 @@ config.directory = config.directory:gsub("^~", assert(os.getenv("HOME")))
 config.editor = config.editor or "$EDITOR"
 
 if opts.tags then
-    os.execute(string.format("rg --only-matching --no-filename '@\\w+' %q | sort | uniq", config.directory))
+    os.execute(
+        string.format("rg --only-matching --no-filename '@\\w+' %q | sort | uniq", config.directory)
+    )
     os.exit(0)
 end
 
+local color_arg = "--color=auto"
+if opts.color then
+    color_arg = "--color=" .. opts.color
+end
 local handler = function(files)
-        files = files:gsub("\n", " ")
-        os.execute("bat -H 1 --language markdown " .. files)
-    end
+    files = files:gsub("\n", " ")
+    os.execute(string.format("bat -H 1 --language markdown %s %s", color_arg, files))
+end
 if opts.short then
     handler = function(files)
         files = files:gsub("\n", " ")
-        os.execute("head -n 1 --quiet " ..files .. " | rg --no-filename --colors 'match:fg:magenta' -e '@\\w+'")
+        os.execute(
+            string.format(
+                "head -n 1 --quiet %s | rg --no-filename --colors 'match:fg:magenta' -e '@\\w+' %s",
+                files,
+                color_arg
+            )
+        )
     end
 end
 if opts.file then
