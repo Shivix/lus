@@ -78,6 +78,11 @@ local valid_opts = {
         description = "Print the filenames of any matching notes instead of the contents",
     },
     {
+        long = "fixed-strings",
+        short = "F",
+        description = "treat arguments as plain strings and avoid lua pattern matching",
+    },
+    {
         long = "number",
         short = "n",
         value = true,
@@ -86,11 +91,6 @@ local valid_opts = {
     {
         long = "or",
         description = "One or more of the provided arguments must match rather than all",
-    },
-    {
-        long = "fixed-strings",
-        short = "F",
-        description = "treat arguments as plain strings and avoid lua pattern matching",
     },
     {
         long = "short",
