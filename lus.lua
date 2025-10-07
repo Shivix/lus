@@ -193,6 +193,11 @@ if opts.edit then
     end
 end
 
+-- Allow usage like `lus -n 1` for shorthand of `lus "" -n 1`
+if opts.number and #args == 0 then
+    args = {""}
+end
+
 if #args == 0 then
     create_note(config)
 else
@@ -236,7 +241,7 @@ else
             if patterns_found == #patterns then
                 files = files .. " " .. file
                 n = n + 1
-                if n == tonumber(opts.number) then
+                if opts.number and n >= tonumber(opts.number) then
                     break
                 end
             end
