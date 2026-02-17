@@ -167,7 +167,7 @@ if opts.short then
         files = files:gsub("\n", " ")
         os.execute(
             string.format(
-                "head -n 1 --quiet %s | rg --no-filename --colors 'match:fg:magenta' -e '@\\w+' %s",
+                "head -n 1 --quiet %s | rg --passthrough --colors 'match:fg:magenta' '@\\w+' %s",
                 files,
                 color_arg
             )
