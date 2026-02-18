@@ -2,7 +2,7 @@
 
 local lualib_args = require("lualib.args")
 
-local function create_note(config)
+local function get_next_note_id(config)
     local id_path = config.directory .. "id"
     local file <close> = io.open(id_path, "r")
     local new_id
@@ -13,23 +13,36 @@ local function create_note(config)
         new_id = file:read("*n")
         assert(new_id, "id file is corrupted") -- TODO: Recreate based on current highest file name
     end
-    new_id = new_id + 1
+    return new_id + 1
+end
 
-    local note_path = config.directory .. new_id .. ".lus"
-    os.execute(config.editor .. " " .. note_path)
-
-    if os.execute("ls " .. note_path .. " 2>/dev/null") then
-        os.execute(string.format(
-            [[
-            if [ ! -s %q ]; then
-                rm -i %q
-            fi
-        ]],
-            note_path,
-            note_path
-        ))
-        os.execute("echo " .. new_id .. " >" .. id_path)
+local function confirm_note(config, new_id, note_path)
+    local file = io.open(note_path, "r")
+    if not file then
+        return
     end
+    local size = file:seek("end")
+    file:close()
+    if size == 0 then
+        os.remove(note_path)
+        return
+    end
+    os.execute("echo " .. new_id .. " >" .. config.directory .. "id")
+end
+
+local function create_note(config)
+    local new_id = get_next_note_id(config)
+    local note_path = config.directory .. new_id .. ".lus"
+
+    local stat = io.popen("tty"):read("*l")
+    if stat == "not a tty" then
+        local file <close> = assert(io.open(note_path, "w"))
+        local data = io.stdin:read("*a")
+        file:write(data)
+    else
+        os.execute(config.editor .. " " .. note_path)
+    end
+    confirm_note(config, new_id, note_path)
 end
 
 local valid_opts = {
@@ -50,7 +63,7 @@ local valid_opts = {
     {
         long = "color",
         value = true,
-        description = "When to color the output (Always, never, auto)",
+        description = "When to color the output (always, never, auto)",
     },
     {
         long = "completion",
@@ -104,7 +117,7 @@ local valid_opts = {
     },
 }
 
-local version = "1.0.1"
+local version = "1.0.2"
 local opts, args = lualib_args.parse_args(valid_opts)
 
 if opts.help then
@@ -115,7 +128,7 @@ if opts.help then
 A simple note taking/ journaling tool.
 
 Usage:
-    lus [Pattern] [Options]
+    lus [option] [pattern]...
 
 ]]
         .. lualib_args.generate_usage(valid_opts)
@@ -195,7 +208,7 @@ end
 
 -- Allow usage like `lus -n 1` for shorthand of `lus "" -n 1`
 if opts.number and #args == 0 then
-    args = {""}
+    args = { "" }
 end
 
 if #args == 0 then

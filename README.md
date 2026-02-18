@@ -6,7 +6,8 @@ Fish shell completion is provided.
 ## Usage
 Some examples of how to use. Please see lus --help for more details.
 ```sh
-$ lus # Create new note
+$ lus # Create a new note interactively using $EDITOR
+$ echo @todo task | lus # Create new note using stdin
 $ lus @todo --short # Print the titles of all notes containing @todo tags
 $ lus "lus usage" # Print the notes that contain "lus usage"
 $ lus lus usage # Print the notes that contain both the words lus and usage in any position
