@@ -6,6 +6,7 @@ complete -c lus -l case-sensitive '-d Match notes case sensitively'
 complete -c lus -l color -r '-d When to color the output (Always, never, auto)'
 complete -c lus -l completion '-d Print completion'
 complete -c lus -l config -s c -r '-d Set the config, defaults to ~/.config/lus/config.lua'
+complete -c lus -l count -d "Print the number of notes matching the pattern"
 complete -c lus -l delete -s d '-d Delete any matching notes, will ask for confirmation'
 complete -c lus -l edit -s e '-d Edit any matching notes in configured editor (defaults to $EDITOR)'
 complete -c lus -l file -s f '-d Print the filenames of any matching notes instead of the contents'

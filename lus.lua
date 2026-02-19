@@ -66,6 +66,10 @@ local valid_opts = {
         description = "When to color the output (always, never, auto)",
     },
     {
+        long = "count",
+        description = "Print the number of notes matching the pattern",
+    },
+    {
         long = "completion",
         description = "Print completion",
     },
@@ -171,13 +175,13 @@ local color_arg = "--color=auto"
 if opts.color then
     color_arg = "--color=" .. opts.color
 end
-local handler = function(files)
-    files = files:gsub("\n", " ")
+local handler = function(notes)
+    local files = table.concat(notes, " ")
     os.execute(string.format("bat -H 1 --language markdown %s %s", color_arg, files))
 end
 if opts.short then
-    handler = function(files)
-        files = files:gsub("\n", " ")
+    handler = function(notes)
+    local files = table.concat(notes, " ")
         os.execute(
             string.format(
                 "head -n 1 --quiet %s | rg --passthrough --colors 'match:fg:magenta' '@\\w+' %s",
@@ -188,21 +192,27 @@ if opts.short then
     end
 end
 if opts.file then
-    handler = function(files)
+    handler = function(notes)
+        local files = table.concat(notes, "\n")
         print(files)
     end
 end
 if opts.delete then
-    handler = function(files)
-        files = files:gsub("\n", " ")
+    handler = function(notes)
+        local files = table.concat(notes, " ")
         os.execute("bat --line-range :1 " .. files)
         os.execute("rm -i " .. files)
     end
 end
 if opts.edit then
-    handler = function(files)
-        files = files:gsub("\n", " ")
+    handler = function(notes)
+        local files = table.concat(notes, " ")
         os.execute(config.editor .. " " .. files)
+    end
+end
+if opts.count then
+    handler = function(notes)
+        print(#notes)
     end
 end
 
@@ -228,7 +238,7 @@ else
         end
     end
 
-    local files = ""
+    local files = {}
     local n = 0
     -- sort -V avoids 10..19, 1 ordering. -r reverses so newer notes are first.
     local notes = assert(io.popen('ls "' .. config.directory .. '"*.lus | sort -Vr'))
@@ -252,7 +262,7 @@ else
                 end
             end
             if patterns_found == #patterns then
-                files = files .. " " .. file
+                table.insert(files, file)
                 n = n + 1
                 if opts.number and n >= tonumber(opts.number) then
                     break
@@ -261,7 +271,9 @@ else
         end
     end
 
-    if files ~= "" then
+    if #files > 0 then
         handler(files)
+    elseif opts.count then
+        print(0)
     end
 end
