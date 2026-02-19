@@ -2,49 +2,6 @@
 
 local lualib_args = require("lualib.args")
 
-local function get_next_note_id(config)
-    local id_path = config.directory .. "id"
-    local file <close> = io.open(id_path, "r")
-    local new_id
-    if file == nil then
-        os.execute("echo 0 >" .. id_path)
-        new_id = 0
-    else
-        new_id = file:read("*n")
-        assert(new_id, "id file is corrupted") -- TODO: Recreate based on current highest file name
-    end
-    return new_id + 1
-end
-
-local function confirm_note(config, new_id, note_path)
-    local file = io.open(note_path, "r")
-    if not file then
-        return
-    end
-    local size = file:seek("end")
-    file:close()
-    if size == 0 then
-        os.remove(note_path)
-        return
-    end
-    os.execute("echo " .. new_id .. " >" .. config.directory .. "id")
-end
-
-local function create_note(config)
-    local new_id = get_next_note_id(config)
-    local note_path = config.directory .. new_id .. ".lus"
-
-    local stat = io.popen("tty"):read("*l")
-    if stat == "not a tty" then
-        local file <close> = assert(io.open(note_path, "w"))
-        local data = io.stdin:read("*a")
-        file:write(data)
-    else
-        os.execute(config.editor .. " " .. note_path)
-    end
-    confirm_note(config, new_id, note_path)
-end
-
 local valid_opts = {
     {
         long = "help",
@@ -121,100 +78,175 @@ local valid_opts = {
     },
 }
 
-local version = "1.0.2"
-local opts, args = lualib_args.parse_args(valid_opts)
-
-if opts.help then
-    local usage = "lus "
-        .. version
-        .. [[
-
-A simple note taking/ journaling tool.
-
-Usage:
-    lus [option] [pattern]...
-
-]]
-        .. lualib_args.generate_usage(valid_opts)
-        .. [[
-
-https://github.com/Shivix/lus]]
-    print(usage)
-    os.exit(0)
-elseif opts.version then
-    print("lus " .. version)
-    os.exit(0)
-elseif opts.completion then
-    print(lualib_args.generate_completion("lus", valid_opts))
-    os.exit(0)
+local function get_next_note_id(config)
+    local id_path = config.directory .. "id"
+    local file <close> = io.open(id_path, "r")
+    local new_id
+    if file == nil then
+        os.execute("echo 0 >" .. id_path)
+        new_id = 0
+    else
+        new_id = file:read("*n")
+        assert(new_id, "id file is corrupted") -- TODO: Recreate based on current highest file name
+    end
+    return new_id + 1
 end
 
-local config_path = opts.config or "~/.config/lus/config.lua"
-config_path = config_path:gsub("^~", assert(os.getenv("HOME")))
-local ok, config = pcall(dofile, config_path)
-if not ok then
-    config = {}
+local function confirm_note(config, new_id, note_path)
+    local file = io.open(note_path, "r")
+    if not file then
+        return
+    end
+    local size = file:seek("end")
+    file:close()
+    if size == 0 then
+        os.remove(note_path)
+        return
+    end
+    os.execute("echo " .. new_id .. " >" .. config.directory .. "id")
 end
 
-config.directory = config.directory or "~/.local/state/lus/"
-if not config.directory:match("/$") then
-    config.directory = config.directory .. "/"
-end
-config.directory = config.directory:gsub("^~", assert(os.getenv("HOME")))
+local function create_note(config)
+    local new_id = get_next_note_id(config)
+    local note_path = config.directory .. new_id .. ".lus"
 
-config.editor = config.editor or "$EDITOR"
-
-if opts.tags then
-    os.execute(
-        string.format("rg --only-matching --no-filename '@\\w+' %q | sort | uniq", config.directory)
-    )
-    os.exit(0)
+    local stat = io.popen("tty"):read("*l")
+    if stat == "not a tty" then
+        local file <close> = assert(io.open(note_path, "w"))
+        local data = io.stdin:read("*a")
+        file:write(data)
+    else
+        os.execute(config.editor .. " " .. note_path)
+    end
+    confirm_note(config, new_id, note_path)
 end
 
-local color_arg = "--color=auto"
-if opts.color then
-    color_arg = "--color=" .. opts.color
+local function check_match(opts, pattern, content)
+    if pattern.tag then
+        -- This is much faster than using pattern matching.
+        if
+            content:find(pattern.text .. " ", 1, opts["fixed-strings"])
+            or content:find(pattern.text .. "\n", 1, opts["fixed-strings"])
+        then
+            return true
+        end
+    else
+        if content:find(pattern.text, 1, opts["fixed-strings"]) then
+            return true
+        end
+    end
+    return false
 end
-local handler = function(notes)
-    local files = table.concat(notes, " ")
-    os.execute(string.format("bat -H 1 --language markdown %s %s", color_arg, files))
+
+local function setup_config(opts)
+    local config_path = opts.config or "~/.config/lus/config.lua"
+    config_path = config_path:gsub("^~", assert(os.getenv("HOME")))
+    local ok, config = pcall(dofile, config_path)
+    if not ok then
+        config = {}
+    end
+
+    config.directory = config.directory or "~/.local/state/lus/"
+    if not config.directory:match("/$") then
+        config.directory = config.directory .. "/"
+    end
+    config.directory = config.directory:gsub("^~", assert(os.getenv("HOME")))
+
+    config.editor = config.editor or "$EDITOR"
+
+    return config
 end
-if opts.short then
-    handler = function(notes)
-    local files = table.concat(notes, " ")
-        os.execute(
-            string.format(
-                "head -n 1 --quiet %s | rg --passthrough --colors 'match:fg:magenta' '@\\w+' %s",
-                files,
-                color_arg
+
+local function get_handler(opts, config)
+    local color_arg = "--color=auto"
+    if opts.color then
+        color_arg = "--color=" .. opts.color
+    end
+
+    local handler = function(notes)
+        local files = table.concat(notes, " ")
+        os.execute(string.format("bat -H 1 --language markdown %s %s", color_arg, files))
+    end
+    if opts.short then
+        handler = function(notes)
+            local files = table.concat(notes, " ")
+            os.execute(
+                string.format(
+                    "head -n 1 --quiet %s | rg --passthrough --colors 'match:fg:magenta' '@\\w+' %s",
+                    files,
+                    color_arg
+                )
             )
+        end
+    end
+    if opts.file then
+        handler = function(notes)
+            local files = table.concat(notes, "\n")
+            print(files)
+        end
+    end
+    if opts.delete then
+        handler = function(notes)
+            local files = table.concat(notes, " ")
+            os.execute("bat --line-range :1 " .. files)
+            os.execute("rm -i " .. files)
+        end
+    end
+    if opts.edit then
+        handler = function(notes)
+            local files = table.concat(notes, " ")
+            os.execute(config.editor .. " " .. files)
+        end
+    end
+    if opts.count then
+        handler = function(notes)
+            print(#notes)
+        end
+    end
+    return handler
+end
+
+local function early_return_opts(opts, config)
+    local version = "1.0.2"
+    if opts.help then
+        local usage = "lus "
+            .. version
+            .. [[
+
+    A simple note taking/ journaling tool.
+
+    Usage:
+        lus [option] [pattern]...
+
+    ]]
+            .. lualib_args.generate_usage(valid_opts)
+            .. [[
+
+    https://github.com/Shivix/lus]]
+        print(usage)
+        os.exit(0)
+    elseif opts.version then
+        print("lus " .. version)
+        os.exit(0)
+    elseif opts.completion then
+        print(lualib_args.generate_completion("lus", valid_opts))
+        os.exit(0)
+    end
+
+    if opts.tags then
+        os.execute(
+            string.format("rg --only-matching --no-filename '@\\w+' %q | sort | uniq", config.directory)
         )
+        os.exit(0)
     end
 end
-if opts.file then
-    handler = function(notes)
-        local files = table.concat(notes, "\n")
-        print(files)
-    end
-end
-if opts.delete then
-    handler = function(notes)
-        local files = table.concat(notes, " ")
-        os.execute("bat --line-range :1 " .. files)
-        os.execute("rm -i " .. files)
-    end
-end
-if opts.edit then
-    handler = function(notes)
-        local files = table.concat(notes, " ")
-        os.execute(config.editor .. " " .. files)
-    end
-end
-if opts.count then
-    handler = function(notes)
-        print(#notes)
-    end
-end
+
+local opts, args = lualib_args.parse_args(valid_opts)
+local config = setup_config(opts)
+
+early_return_opts(opts, config)
+
+local handler = get_handler(opts, config)
 
 -- Allow usage like `lus -n 1` for shorthand of `lus "" -n 1`
 if opts.number and #args == 0 then
@@ -232,9 +264,9 @@ else
         end
         if a:sub(1, 1) == "@" and not a:find(" ") and not opts["fixed-strings"] then
             -- Only match whole tags (@tod should not match @todo)
-            table.insert(patterns, a .. "[^%w]")
+            table.insert(patterns, { text = a, tag = true })
         else
-            table.insert(patterns, a)
+            table.insert(patterns, { text = a, tag = false })
         end
     end
 
@@ -247,18 +279,23 @@ else
         if f then
             local content = f:read("*a")
             if not opts["case-sensitive"] then
+                -- Use smartcase (only make case sensitive if pattern given includes uppercase)
                 content = content:lower()
             end
             f:close()
             local patterns_found = 0
             for _, pattern in ipairs(patterns) do
-                -- Use smartcase (only make case sensitive if pattern given includes uppercase)
-                if content:find(pattern, 1, opts["fixed-strings"]) then
+                local found = check_match(opts, pattern, content)
+                if found then
                     if opts["or"] then
                         patterns_found = #patterns
                         break
                     end
                     patterns_found = patterns_found + 1
+                else
+                    if not opts["or"] then
+                        break
+                    end
                 end
             end
             if patterns_found == #patterns then
@@ -274,6 +311,7 @@ else
     if #files > 0 then
         handler(files)
     elseif opts.count then
+        -- count is the one time we want to do something when there's no matches.
         print(0)
     end
 end
