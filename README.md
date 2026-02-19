@@ -29,3 +29,12 @@ function fzflus
     lus "" --short | fzf --multi --preview 'lus {} --fixed-strings --file | xargs bat -H 1 --language markdown --color=always'
 end
 ```
+
+## Skill
+When using AI agents (don't worry this code base has not been written by AI) it's often nice to have
+it condense down the current chat sessions into some notes to use for future reference. I don't want
+to replace my note taking system with an AI based one, as it is grossly overkill for most cases, but
+I also don't want to throw away that ability. Therefor, I have provided a skill to allow an agent to
+easily and safely create and manage notes using Lus.
+
+See skills/ directory.
