@@ -1,0 +1,4 @@
+version: 1
+interface:
+  display_name: Lus Note Management
+  short_description: Lightweight CLI workflow for creating, searching, listing, and safely deleting tagged markdown notes
