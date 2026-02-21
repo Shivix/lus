@@ -6,10 +6,11 @@ INSTALL_TARGET = $(INSTALL_DIR)$(notdir lus)
 SKILL_DIR = skill/
 CODEX_DIR = $(HOME)/.codex/
 
+FISH_COMPLETION_DIR = $(HOME)/.config/fish/completions/
+
 install:
 	cp $(SRC) "$(INSTALL_TARGET)"
 	chmod +x "$(INSTALL_TARGET)"
-	install -m 644 completions.fish /usr/share/fish/completions/lus.fish
 
 install-skill:
 	@if [ -d "$(CODEX_DIR)" ]; then \
@@ -17,4 +18,7 @@ install-skill:
 		cp -r $(SKILL_DIR) "$(CODEX_DIR)skills/lus"; \
 	fi
 
-.PHONY: install install-skill
+install-completion:
+	install -m 644 completions.fish "$(FISH_COMPLETION_DIR)lus.fish"
+
+.PHONY: install install-skill install-completion

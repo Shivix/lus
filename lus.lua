@@ -215,14 +215,14 @@ local function early_return_opts(opts, config)
 
     A simple note taking/ journaling tool.
 
-    Usage:
-        lus [option] [pattern]...
+Usage:
+    lus [option] [pattern]...
 
-    ]]
+]]
             .. lualib_args.generate_usage(valid_opts)
             .. [[
 
-    https://github.com/Shivix/lus]]
+https://github.com/Shivix/lus]]
         print(usage)
         os.exit(0)
     elseif opts.version then
@@ -235,7 +235,10 @@ local function early_return_opts(opts, config)
 
     if opts.tags then
         os.execute(
-            string.format("rg --only-matching --no-filename '@\\w+' %q | sort | uniq", config.directory)
+            string.format(
+                "rg --only-matching --no-filename '@\\w+' %q | sort | uniq",
+                config.directory
+            )
         )
         os.exit(0)
     end
