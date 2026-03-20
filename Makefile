@@ -9,6 +9,7 @@ CODEX_DIR = $(HOME)/.codex/
 FISH_COMPLETION_DIR = $(HOME)/.config/fish/completions/
 
 install:
+	mkdir -p "$(DESTDIR)$(INSTALL_DIR)"
 	cp $(SRC) "$(DESTDIR)$(INSTALL_TARGET)"
 	chmod +x "$(DESTDIR)$(INSTALL_TARGET)"
 
