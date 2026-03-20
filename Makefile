@@ -1,7 +1,7 @@
 SRC = lus.lua
-PREFIX ?= /usr/local/
-INSTALL_DIR = $(PREFIX)bin/
-INSTALL_TARGET = $(INSTALL_DIR)$(notdir lus)
+PREFIX ?= /usr/local
+INSTALL_DIR = $(PREFIX)/bin
+INSTALL_TARGET = $(INSTALL_DIR)/lus
 
 SKILL_DIR = skill/
 CODEX_DIR = $(HOME)/.codex/
@@ -9,8 +9,8 @@ CODEX_DIR = $(HOME)/.codex/
 FISH_COMPLETION_DIR = $(HOME)/.config/fish/completions/
 
 install:
-	cp $(SRC) "$(INSTALL_TARGET)"
-	chmod +x "$(INSTALL_TARGET)"
+	cp $(SRC) "$(DESTDIR)$(INSTALL_TARGET)"
+	chmod +x "$(DESTDIR)$(INSTALL_TARGET)"
 
 install-skill:
 	@if [ -d "$(CODEX_DIR)" ]; then \
